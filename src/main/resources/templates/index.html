@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>基因库管理系统</title>
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root{ --bg:#f5f7fb; --card:#ffffff; --line:#eef1f5; --text:#1f2937; --primary:#2563eb; }
+        body { background-color: var(--bg); font-family: system-ui, -apple-system, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+
+        /* 全局水印 */
+        body::after {
+            content: "科研辅助 · 仅供参考";
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 6rem;
+            color: rgba(0,0,0,0.03);
+            pointer-events: none;
+            z-index: 0;
+            white-space: nowrap;
+            font-weight: 800;
+        }
+
+        /* ... 其他原有样式 ... */
+        .navbar-custom { height: 64px; background: var(--card); border-bottom: 1px solid var(--line); padding: 0 24px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+        .app-brand { font-weight: 800; font-size: 1.25rem; color: #111827; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
+        .search-group { position: relative; display: flex; align-items: center; width: 360px; background: #f3f4f6; border-radius: 99px; padding: 4px; border: 1px solid transparent; transition: all 0.2s; }
+        .search-group:focus-within { background: #fff; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        .search-input { border: none; background: transparent; padding: 6px 12px; width: 100%; outline: none; font-size: 0.9rem; }
+        .search-btn { background: var(--primary); color: white; border: none; border-radius: 99px; padding: 5px 16px; font-weight: 600; font-size: 0.85rem; }
+        .main-card { margin: 20px; background: var(--card); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); height: calc(100vh - 104px); border: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; z-index: 10; }
+        .table-container { flex: 1; overflow: auto; }
+        .table-custom { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .table-custom th { position: sticky; top: 0; background: #f8fafc; color: #475569; padding: 12px 14px; font-weight: 700; font-size: 0.85rem; border-bottom: 2px solid #e2e8f0; z-index: 10; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px; }
+        .table-custom td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; font-size: 0.9rem; white-space: nowrap; }
+        .table-custom tr:hover { background: #f8fafc; }
+        .col-id { color: var(--primary); font-family: Consolas, monospace; font-weight: 600; }
+        .col-name-cell { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: #1e293b; }
+        .badge-blood { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 22px; border-radius: 4px; font-weight: 700; font-size: 0.75rem; }
+        .bg-A { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+        .bg-B { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+        .bg-O { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+        .bg-AB { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+        .bg-未知 { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
+        .footer-bar { padding: 10px 20px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; background: var(--card); }
+        .inline-form { display: inline-block; margin: 0; }
+        .btn-link-danger { color: #dc3545; border: none; background: none; padding: 0; transition: color 0.2s; }
+        .btn-link-danger:hover { color: #a71d2a; }
+        .hla-cell { font-family: 'Consolas', monospace; font-size: 0.85rem; color: #64748b; }
+
+        .footer-disclaimer {
+            text-align: center;
+            padding: 5px 0;
+            font-size: 0.7rem;
+            color: #94a3b8;
+            background: #f5f7fb;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+<!-- ... Navbar 代码不变 ... -->
+<div class="navbar-custom">
+    <div class="app-brand"><i class="bi bi-dna text-primary"></i> 基因库管理系统</div>
+
+    <form action="/" method="get">
+        <div class="search-group">
+            <i class="bi bi-search ms-3 text-secondary"></i>
+            <input type="text" name="keyword" class="search-input" placeholder="输入 ID 或姓名查找..." th:value="${keyword}">
+            <button type="submit" class="search-btn">搜索</button>
+        </div>
+    </form>
+
+    <div class="d-flex gap-2 align-items-center">
+        <form th:action="@{/reset}" method="post" class="inline-form" onsubmit="return confirm('警告：确定要清空所有数据吗？此操作不可恢复！')">
+            <button type="submit" class="btn btn-sm btn-outline-danger fw-bold border-0"><i class="bi bi-trash3 me-1"></i>清空库</button>
+        </form>
+
+        <a href="/import" class="btn btn-sm btn-light text-dark fw-bold border"><i class="bi bi-upload me-1"></i>导入</a>
+        <a href="/add" class="btn btn-sm btn-primary fw-bold px-3 rounded-pill shadow-sm"><i class="bi bi-plus-lg me-1"></i>新增供者</a>
+        <a href="/match" class="btn btn-sm btn-warning fw-bold px-3 rounded-pill shadow-sm text-dark"><i class="bi bi-magic me-1"></i>配型查询</a>
+
+        <form th:action="@{/logout}" method="post" class="inline-form ms-2">
+            <button type="submit" class="btn btn-sm btn-outline-secondary border-0" title="退出登录"><i class="bi bi-box-arrow-right fs-5"></i></button>
+        </form>
+    </div>
+</div>
+
+<div class="container mt-3 px-4" th:if="${successMessage} or ${errorMessage}">
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i><span th:text="${successMessage}">操作成功</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${errorMessage}">操作失败</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+</div>
+
+<div class="main-card">
+    <div class="table-container">
+        <table class="table-custom">
+            <thead>
+            <tr>
+                <th>ID</th> <th>姓名</th> <th>性别</th> <th>年龄</th> <th>血型</th>
+                <th>HPA-1</th> <th>HPA-2</th> <th>HPA-3</th> <th>HPA-4</th> <th>HPA-5</th> <th>HPA-6</th> <th>HPA-10</th> <th>HPA-15</th> <th>HPA-21</th>
+                <th>HLA-A</th> <th>HLA-B</th> <th>操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="d : ${donors}">
+                <td class="col-id" th:text="${d.donorId}"></td>
+                <td class="col-name-cell" th:text="${d.name}" th:title="${d.name}"></td>
+                <td th:text="${d.gender}"></td>
+                <td th:text="${d.age}"></td>
+                <td><span class="badge-blood" th:classappend="'bg-'+${d.bloodType}" th:text="${d.bloodType}"></span></td>
+
+                <td th:text="${d.hpa1}"></td> <td th:text="${d.hpa2}"></td> <td th:text="${d.hpa3}"></td>
+                <td th:text="${d.hpa4}"></td> <td th:text="${d.hpa5}"></td> <td th:text="${d.hpa6}"></td>
+                <td th:text="${d.hpa10}"></td> <td th:text="${d.hpa15}"></td> <td th:text="${d.hpa21}"></td>
+
+                <td class="hla-cell"><span th:text="${d.hlaA1}"></span> | <span th:text="${d.hlaA2}"></span></td>
+                <td class="hla-cell"><span th:text="${d.hlaB1}"></span> | <span th:text="${d.hlaB2}"></span></td>
+                <td>
+                    <a th:href="@{'/edit/'+${d.donorId}}" class="text-primary me-3" title="编辑"><i class="bi bi-pencil-square"></i></a>
+                    <form th:action="@{'/delete/'+${d.donorId}}" method="post" class="inline-form" onsubmit="return confirm('确定删除该供者吗？')">
+                        <button type="submit" class="btn-link-danger" title="删除"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(donors)}"><td colspan="17" class="text-center py-5 text-muted">暂无数据，请先导入或新增</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ... Footer Bar 代码不变 ... -->
+    <div class="footer-bar" th:if="${donorPage.totalPages > 0}">
+        <div class="text-secondary small">
+            共 <span class="fw-bold text-dark">[[${donorPage.totalElements}]]</span> 条数据
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <div class="btn-group btn-group-sm">
+                <a class="btn btn-outline-secondary" th:classappend="${donorPage.first} ? 'disabled'" th:href="@{/(page=0, keyword=${keyword})}"><i class="bi bi-chevron-bar-left"></i></a>
+                <a class="btn btn-outline-secondary" th:classappend="${donorPage.first} ? 'disabled'" th:href="@{/(page=${donorPage.number - 1}, keyword=${keyword})}"><i class="bi bi-chevron-left"></i></a>
+            </div>
+            <div class="d-flex align-items-center bg-light border rounded px-2 py-1">
+                <span class="small text-muted me-2">第</span>
+                <span class="fw-bold text-primary">[[${donorPage.number + 1}]]</span>
+                <span class="small text-muted ms-2">/ [[${donorPage.totalPages}]] 页</span>
+            </div>
+            <div class="btn-group btn-group-sm">
+                <a class="btn btn-outline-secondary" th:classappend="${donorPage.last} ? 'disabled'" th:href="@{/(page=${donorPage.number + 1}, keyword=${keyword})}"><i class="bi bi-chevron-right"></i></a>
+                <a class="btn btn-outline-secondary" th:classappend="${donorPage.last} ? 'disabled'" th:href="@{/(page=${donorPage.totalPages - 1}, keyword=${keyword})}"><i class="bi bi-chevron-bar-right"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="footer-disclaimer">
+    <span class="text-danger fw-bold">免责声明：</span>本系统仅作为科研数据管理与辅助检索工具，配型结果仅供参考，严禁直接作为临床输血/移植的唯一依据。最终医疗决策请遵循临床检验标准。
+</div>
+
+<script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

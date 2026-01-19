@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>供者信息录入</title>
+  <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body{background:#f3f5f9;height:100vh;overflow:hidden;font-family:system-ui,-apple-system,sans-serif}
+    .topbar{height:64px;background:#fff;border-bottom:1px solid #edf2f7;padding:0 24px;display:flex;align-items:center;justify-content:space-between}
+    .card-wrap{height:calc(100vh - 64px);padding:24px;display:flex;justify-content:center}
+    .form-card{background:#fff;border:1px solid #edf2f7;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.03);padding:30px;width:100%;max-width:900px;overflow:auto}
+    .section-title{font-weight:700;color:#334155;margin:20px 0 15px;border-left:4px solid #3b82f6;padding-left:10px;font-size:1.05rem}
+    .form-label{font-size:0.9rem;font-weight:600;color:#64748b}
+  </style>
+</head>
+<div class="fixed-bottom text-center p-2 small bg-danger bg-opacity-10 text-danger fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px; border-top: 1px solid #fecaca;">
+  <i class="bi bi-exclamation-octagon-fill me-1"></i>
+  免责声明：本系统仅供科研参考，严禁用于临床医疗决策。
+</div>
+
+<body>
+<div class="topbar">
+  <div class="d-flex align-items-center">
+    <a href="/" class="btn btn-light border me-2"><i class="bi bi-arrow-left"></i></a>
+    <strong>供者信息管理</strong>
+  </div>
+</div>
+
+<div class="card-wrap">
+  <form th:object="${donor}" th:action="@{/save}" method="post" class="form-card">
+
+    <!-- 🔥 核心修复：乐观锁版本号必须作为隐藏字段提交 -->
+    <input type="hidden" th:field="*{version}"/>
+
+    <!-- 如果是编辑模式，ID 已存在；如果是新增，ID 为空 -->
+    <!-- 注意：不要让 ID 字段 disabled，否则 POST 请求不会提交它，改用 readonly -->
+
+    <div class="section-title mt-0">基本信息</div>
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label">ID (自动生成/只读)</label>
+        <input th:field="*{donorId}" class="form-control bg-light font-monospace" readonly placeholder="系统自动生成">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">姓名 <span class="text-danger">*</span></label>
+        <input th:field="*{name}" class="form-control" required>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">性别</label>
+        <select th:field="*{gender}" class="form-select">
+          <option value="">-</option><option value="男">男</option><option value="女">女</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">年龄</label>
+        <input type="number" th:field="*{age}" class="form-control" min="0" max="120">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">血型 <span class="text-danger">*</span></label>
+        <select th:field="*{bloodType}" class="form-select" required>
+          <option value="未知">未知</option>
+          <option value="A">A</option><option value="B">B</option><option value="O">O</option><option value="AB">AB</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-title">HPA 基因分型</div>
+    <div class="row g-2">
+      <!-- 使用 Thymeleaf 循环生成 HPA 选择框 -->
+      <div class="col-4 col-md-2" th:each="k : ${ {'hpa1','hpa2','hpa3','hpa4','hpa5','hpa6','hpa10','hpa15','hpa21'} }">
+        <label class="form-label text-dark small" th:text="${#strings.toUpperCase(#strings.replace(k,'hpa','HPA-'))}"></label>
+        <select class="form-select form-select-sm" th:field="*{__${k}__}">
+          <option value="">-</option><option value="aa">aa</option><option value="bb">bb</option><option value="ab">ab</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-title">HLA 基因分型 (高分辨)</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">HLA-A 位点</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light text-secondary">A1</span>
+          <input th:field="*{hlaA1}" class="form-control" placeholder="例: 30:01:01">
+          <span class="input-group-text bg-light text-secondary">A2</span>
+          <input th:field="*{hlaA2}" class="form-control" placeholder="例: 02:01:01">
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">HLA-B 位点</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light text-secondary">B1</span>
+          <input th:field="*{hlaB1}" class="form-control" placeholder="例: 13:02:01">
+          <span class="input-group-text bg-light text-secondary">B2</span>
+          <input th:field="*{hlaB2}" class="form-control" placeholder="例: 15:18:01">
+        </div>
+      </div>
+    </div>
+
+    <div class="text-end mt-4 pt-3 border-top">
+      <a href="/" class="btn btn-light me-2 px-4">取消</a>
+      <button type="submit" class="btn btn-primary px-5 fw-bold">保存信息</button>
+    </div>
+  </form>
+</div>
+
+<!-- 🔥 新增脚本：在提交前自动补全 HLA 前缀 -->
+<script>
+  document.querySelector('form').addEventListener('submit', function(e) {
+    // 辅助函数：标准化 HLA 输入
+    function normalizeHla(fieldId, type) {
+      var input = document.getElementById(fieldId);
+      if (!input) return;
+
+      var val = input.value.trim();
+      if (!val) return; // 空值不处理，防止提交单纯的 "HLA-A*"
+
+      var upper = val.toUpperCase();
+      var prefixFull = 'HLA-' + type + '*'; // e.g. HLA-A*
+      var prefixShort = type + '*';          // e.g. A*
+
+      if (upper.startsWith(prefixFull)) {
+        // 1. 已经包含完整前缀 (如 HLA-A*02:01)，不做处理，防止重复
+        return;
+      } else if (upper.startsWith(prefixShort)) {
+        // 2. 包含简写前缀 (如 A*02:01)，补全 HLA-
+        input.value = "HLA-" + val;
+      } else {
+        // 3. 纯数字或其他 (如 02:01)，补全完整前缀 HLA-A*
+        input.value = prefixFull + val;
+      }
+    }
+
+    // 执行补全逻辑
+    normalizeHla('hlaA1', 'A');
+    normalizeHla('hlaA2', 'A');
+    normalizeHla('hlaB1', 'B');
+    normalizeHla('hlaB2', 'B');
+  });
+</script>
+
+</body>
+</html>
